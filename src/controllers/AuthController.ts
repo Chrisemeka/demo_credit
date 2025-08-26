@@ -40,7 +40,7 @@ export class AuthController {
             return res.status(501).json({message: 'Error creating user', error});
         }
     }
-
+ 
     static login = async (req: Request, res: Response) => {
         try {
                 const { email, password } = req.body;

@@ -33,23 +33,30 @@ const karmaCheckMiddleWare = async (email: string) => {
     const apiKey = process.env.ADJUTOR_API_KEY!;
 
     try {
-        const response = await axios.post<KarmaApiResponse>(`${apiUrl}/verification/karma/:${email}`, {
-            headers: {
-                'Authorization': apiKey,
-                'Content-Type': 'application/json'
+        const response = await axios.get<KarmaApiResponse>(
+            `${apiUrl}/verification/karma/${email}`,
+            {
+                headers: {
+                    'Authorization': `Bearer ${apiKey}`,
+                    'Content-Type': 'application/json'
+                }
             }
-        });
+        );
+
         if (response.data.status !== 'success') {
             console.error('Karma API call failed:', response.data.message);
+            return true; 
         }
+
         if (!response.data.data) {
             return false;
         }
-        const karmaData = response.data.data;
+
         return true;
         
     } catch (error) {
-        throw new Error(`Error checking karma: ${error}`);
+        console.error('Error checking karma:', error);
+        return true;
     }
 };
 

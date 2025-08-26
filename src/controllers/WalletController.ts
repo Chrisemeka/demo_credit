@@ -46,7 +46,7 @@ export class WalletController {
                 throw new Error('Amount must be greater than zero');
             }
 
-            const transactionId = await WalletController.recordTransaction({
+            const transactionId = await trx('transactions').insert({
                 receiver_id: user_id,
                 transaction_type: 'credit',
                 amount,
@@ -91,7 +91,7 @@ export class WalletController {
 
             const [transactionId] = await trx('transactions').insert({
                 sender_id: user_id,
-                receiver_id: user_id, // For withdrawals, it's the same user
+                receiver_id: user_id,
                 transaction_type: 'debit',
                 amount,
                 description: description || 'Wallet withdrawal',
@@ -178,7 +178,7 @@ export class WalletController {
             const newReceiverBalance = receiverWallet.balance! + amount;
             await trx('wallets').where({ account_number: receiver_account }).update({ balance: newReceiverBalance });
 
-            await trx('transactions').where({ id: [debitTransactionId, creditTransactionId] }).update({ status: 'completed' });
+            await trx('transactions').where('id', [debitTransactionId, creditTransactionId] ).update({ status: 'completed' });
 
             await trx.commit();
 
