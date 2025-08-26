@@ -1,248 +1,94 @@
 import { Request, Response } from 'express';
-import { TransactionModel, Transaction } from '../models/transactionModel';
-import { WalletModel, Wallet } from '../models/walletModel';
-import db from '../config/database';
+import { WalletModel } from '../models/walletModel';
+import { UserModel } from '../models/userModel';
 
-export class WalletController {
-    private static async validateAccount(account_number: number): Promise<Wallet> {
-        const wallet = await WalletModel.findByAccountNumber(account_number);
+interface AuthRequest extends Request {
+    user?: { user_id: number};
+}
+
+export class UserController {
+     static generateAccountNumber = (): number => {
+        const prefix = '001';
+        const randomSuffix = Math.floor(1000000 + Math.random() * 9000000);
         
-        if (!wallet) {
-            throw new Error('Account not found');
-        }
-        
-        if (wallet.status !== 'active') {
-            throw new Error('Account is not active');
-        }
-        
-        return wallet;
-    }
-    private static validateBalance(senderBalance: number, amount: number): void {
-        if (amount <= 0) {
-            throw new Error('Amount must be greater than zero');
-        }
-        
-        if (senderBalance < amount) {
-            throw new Error('Insufficient balance');
-        }
-    }
-    private static async recordTransaction(transactionData: Omit<Transaction, 'id' | 'created_at'>): Promise<number> {
-        const [transactionId] = await TransactionModel.create(transactionData);
-        return transactionId;
-    }
-    static async deposit(req: Request, res: Response): Promise<void> {
-        const trx = await db.transaction();       
+        return parseInt(`${prefix}${randomSuffix}`);
+    };
+    static createWallet = async (req: AuthRequest, res: Response) => {
         try {
-            const { account_number, amount, description, user_id } = req.body;
-
-            if (!account_number || !amount || !user_id) {
-                res.status(400).json({ error: 'Missing required fields' });
-                return;
+            const { currency, status} = req.body;
+            if (!currency || !status) {
+                return res.status(400).json({ message: 'All fields are required' });
             }
-
-            const wallet = await WalletController.validateAccount(account_number);
-
-            if (amount <= 0) {
-                throw new Error('Amount must be greater than zero');
-            }
-
-            const transactionId = await trx('transactions').insert({
-                receiver_id: user_id,
-                transaction_type: 'credit',
-                amount,
-                description: description || 'Wallet deposit',
-                status: 'pending'
-            });
-
-            const newBalance = wallet.balance! + amount;
-            await trx('wallets').where({ account_number }).update({ balance: newBalance });
-
-            await trx('transactions').where({ id: transactionId }).update({ status: 'completed' });
-
-            await trx.commit();
-
-            res.status(200).json({
-                message: 'Deposit successful',
-                transaction_id: transactionId,
-                new_balance: newBalance,
-            });
-
-        } catch (error) {
-            await trx.rollback();
-            res.status(400).json({
-                error: error instanceof Error ? error.message : 'Deposit failed'
-            });
-        }
-    }
-
-    static async withdraw(req: Request, res: Response): Promise<void> {  
-        const trx = await db.transaction();      
-        try {
-            const { account_number, amount, description, user_id } = req.body;
-
-            if (!account_number || !amount || !user_id) {
-                res.status(400).json({ error: 'Missing required fields' });
-                return;
-            }
-
-            const wallet = await WalletController.validateAccount(account_number);
-
-            WalletController.validateBalance(wallet.balance!, amount);
-
-            const [transactionId] = await trx('transactions').insert({
-                sender_id: user_id,
-                receiver_id: user_id,
-                transaction_type: 'debit',
-                amount,
-                description: description || 'Wallet withdrawal',
-                status: 'pending'
-            });
-
-            const newBalance = wallet.balance! - amount;
-            await trx('wallets').where({ account_number }).update({ balance: newBalance });
-
-            await trx('transactions').where({ id: transactionId }).update({ status: 'completed' });
-
-            await trx.commit();
-
-            res.status(200).json({
-                message: 'Withdrawal successful',
-                transaction_id: transactionId,
-                new_balance: newBalance,
-            });
-
-        } catch (error) { 
-            await trx.rollback();           
-            res.status(400).json({
-                error: error instanceof Error ? error.message : 'Withdrawal failed'
-            });
-        }
-    }
-
-    static async transfer(req: Request, res: Response): Promise<void> { 
-        const trx = await db.transaction();       
-        try {
-            const { sender_account, receiver_account, amount, description, sender_user_id,receiver_user_id } = req.body;
-
-            if (!sender_account || !receiver_account || !amount || !sender_user_id) {
-                res.status(400).json({ error: 'Missing required fields' });
-                return;
-            }
-
-            if (sender_account === receiver_account) {
-                throw new Error('Cannot transfer to the same account');
-            }
-
-            const senderWallet = await trx('wallets').where({ account_number: sender_account }).first().forUpdate();
-            const receiverWallet = await trx('wallets').where({ account_number: receiver_account }).first().forUpdate();
-
-            if (!senderWallet) {
-                throw new Error('Sender account not found');
-            }
-
-            if (!receiverWallet) {
-                throw new Error('Receiver account not found');
-            }
-
-            if (senderWallet.status !== 'active') {
-                throw new Error('Sender account is not active');
-            }
-
-            if (receiverWallet.status !== 'active') {
-                throw new Error('Receiver account is not active');
-            }
-
-            WalletController.validateBalance(senderWallet.balance!, amount);
-
-             const [debitTransactionId] = await trx('transactions').insert({
-                sender_id: sender_user_id,
-                receiver_id: receiver_user_id || sender_user_id,
-                transaction_type: 'debit',
-                amount,
-                description: description || `Transfer to ${receiver_account}`,
-                status: 'pending'
-            });
-
-            const [creditTransactionId] = await trx('transactions').insert({
-                sender_id: sender_user_id,
-                receiver_id: receiver_user_id || sender_user_id,
-                transaction_type: 'credit',
-                amount,
-                description: description || `Transfer from ${sender_account}`,
-                status: 'pending'
-            });
-
-            const newSenderBalance = senderWallet.balance! - amount;
-            await trx('wallets').where({ account_number: sender_account }).update({ balance: newSenderBalance });
-
-            const newReceiverBalance = receiverWallet.balance! + amount;
-            await trx('wallets').where({ account_number: receiver_account }).update({ balance: newReceiverBalance });
-
-            await trx('transactions').where('id', [debitTransactionId, creditTransactionId] ).update({ status: 'completed' });
-
-            await trx.commit();
-
-            res.status(200).json({
-                message: 'Transfer successful',
-                sender_transaction_id: debitTransactionId,
-                receiver_transaction_id: creditTransactionId,
-                sender_new_balance: newSenderBalance,
-                receiver_new_balance: newReceiverBalance
-            });
-
-        } catch (error) {   
-            await trx.rollback();         
-            res.status(400).json({
-                error: error instanceof Error ? error.message : 'Transfer failed'
-            });
-        }
-    }
-
-    static async getBalance(req: Request, res: Response): Promise<void> {
-        try {
-            const { account_number } = req.params;
-
-            if (!account_number) {
-                res.status(400).json({ error: 'Account number is required' });
-                return;
-            }
-
-            const wallet = await WalletController.validateAccount(parseInt(account_number));
-
-            res.status(200).json({
-                account_number: wallet.account_number,
-                balance: wallet.balance,
-                currency: wallet.currency,
-                status: wallet.status
-            });
-
-        } catch (error) {
-            res.status(400).json({
-                error: error instanceof Error ? error.message : 'Failed to get balance'
-            });
-        }
-    }
-
-    static async getTransactionHistory(req: Request, res: Response): Promise<void> {
-        try {
-            const { user_id } = req.params;
-            
+            const user_id = req.user?.user_id;
             if (!user_id) {
-                res.status(400).json({ error: 'User ID is required' });
-                return;
+                return res.status(401).json({ message: 'Authentication required' });
             }
-
-            const transactions = await TransactionModel.findAll()
-
-            res.status(200).json({
-                transactions,
-                count: transactions.length
-            });
-
+            const user = await UserModel.findById(user_id);
+            if (!user) {
+                return res.status(404).json({ message: 'User not found' });
+            }
+            const accountNumber = this.generateAccountNumber();
+            const [wallet_id] = await WalletModel.create({ user_id, account_number: accountNumber, currency, status, balance: 0.00 });
+            return res.status(201).json({message: 'Wallet created successfully', wallet_id});
         } catch (error) {
-            res.status(500).json({
-                error: 'Failed to fetch transaction history'
-            });
+            return res.status(500).json({ message: 'Error creating wallet', error: error });  
+        }
+    }
+
+    static deleteWallet = async (req: AuthRequest, res: Response) => {
+        try{
+            const { id } = req.params;
+            const user_id = req.user?.user_id;
+            if (!id) {
+                return res.status(400).json({ message: 'Wallet ID is required' });
+            }
+            if (!user_id) {
+                return res.status(401).json({ message: 'Authentication required' });
+            }
+            const wallet = await WalletModel.findById(Number(id));
+            if (!wallet) {
+                return res.status(404).json({ message: 'Wallet not found' });
+            }
+            if (wallet.user_id !== user_id) {
+                return res.status(403).json({ 
+                    message: 'Forbidden: You can only delete your own wallet' 
+                });
+            }
+            await WalletModel.delete(Number(id));
+            return res.status(200).json({message: 'Wallet deleted successfully'});
+        } catch (error) {
+            return res.status(500).json({ message: 'Error deleting wallet', error: error });  
+        }
+    }
+
+    static updateWalletStatus = async (req: AuthRequest, res: Response) => {
+        try{
+            const { id } = req.params;
+            const user_id = req.user?.user_id;
+            if (!id) {
+                return res.status(400).json({ message: 'Wallet Id is required' });
+            }
+            if (!user_id) {
+                return res.status(401).json({ message: 'Authentication required' });
+            }
+            const wallet = await WalletModel.findById(Number(id));
+            if (!wallet) {
+                return res.status(404).json({ message: 'Wallet not found' });
+            }
+            if (wallet.user_id !== user_id) {
+                return res.status(403).json({ 
+                    message: 'Forbidden: You can only update your own wallet' 
+                });
+            }
+            const { status } = req.body;
+            if (!status) {
+                return res.status(400).json({ message: 'All fields are required' });
+            }
+            await WalletModel.update(Number(id), { status });
+            return res.status(200).json({message: 'Wallet updated successfully'});
+        } catch (error) {
+            return res.status(500).json({ message: 'Error updating wallet', error: error });  
+   
         }
     }
 }

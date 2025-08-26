@@ -8,7 +8,6 @@ export async function up(knex: Knex): Promise<void> {
     table.string('first_name').notNullable();
     table.string('last_name').notNullable();
     table.string('phone_number').unique().notNullable();
-    table.boolean('is_verified').defaultTo(false);
     table.string('password').notNullable();
     table.string('auth_token').nullable();
     table.datetime('token_expiration').nullable();

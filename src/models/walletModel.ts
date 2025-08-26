@@ -16,8 +16,8 @@ export class WalletModel {
         return db('wallets').insert(wallet);
     }
 
-    static async update(account_number: number, updates: Partial<Wallet>): Promise<number> {
-        return db('wallets').where({ account_number }).update(updates);
+    static async update(id: number, updates: Partial<Wallet>): Promise<number> {
+        return db('wallets').where({ id }).update(updates);
     }
 
     static async delete(id: number): Promise<number> {
@@ -26,5 +26,9 @@ export class WalletModel {
 
     static async findByAccountNumber(account_number: number): Promise<Wallet | undefined> {
         return db('wallets').where({ account_number }).first();
+    }
+
+    static async findById(id: number): Promise<Wallet | undefined> {
+        return db('wallets').where({ id }).first();
     }
 }

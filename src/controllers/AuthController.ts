@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { UserModel } from '../models/userModel';
-import { UserController } from './UserController'; 
+import { UserController } from './WalletController'; 
 import { WalletModel } from '../models/walletModel'; 
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
@@ -18,13 +18,13 @@ export class AuthController {
                 if (existingUser) {
                     return res.status(400).json({ message: 'User already exists' });
                 }
-                const isBlacklisted = await karmaCheckMiddleWare(email);
-                if (isBlacklisted) {
-                    return res.status(403).json({
-                    error: 'User verification failed. Account cannot be created.',
-                    code: 'KARMA_BLACKLISTED'
-                    });
-                }
+                // const isBlacklisted = await karmaCheckMiddleWare(email);
+                // if (isBlacklisted) {
+                //     return res.status(403).json({
+                //     error: 'User verification failed. Account cannot be created.',
+                //     code: 'KARMA_BLACKLISTED'
+                //     });
+                // }
                 const hashedPassword = await bcrypt.hash(password, 10);
                 const [user_id] = await UserModel.create({
                     email,
@@ -37,7 +37,7 @@ export class AuthController {
 
                 return res.status(201).json({message: 'User created successfully', user_id});
         } catch (error) {
-            return res.status(501).json({message: 'Error creating user', error});
+            return res.status(501).json({message: 'Error creating user', error: error});
         }
     }
  
@@ -62,7 +62,7 @@ export class AuthController {
                 }
                 return res.status(200).json({ message: 'Login successful', token });
         } catch (error) {
-            return res.status(501).json({message: 'Error creating user', error});
+            return res.status(501).json({message: 'Error creating user', error: error});
         }
     }
 }
