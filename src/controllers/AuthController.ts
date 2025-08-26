@@ -1,5 +1,7 @@
 import { Request, Response } from 'express';
 import { UserModel } from '../models/userModel';
+import { UserController } from './UserController'; 
+import { WalletModel } from '../models/walletModel'; 
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import karmaCheckMiddleWare from '../service/karmaCheckMiddleWare';
@@ -31,9 +33,10 @@ export class AuthController {
                     phone_number,
                     password: hashedPassword,
                 });
+                await WalletModel.create({ user_id, account_number: UserController.generateAccountNumber(), currency: 'NGN', status: 'active' });
+
                 return res.status(201).json({message: 'User created successfully', user_id});
         } catch (error) {
-            throw new Error(`Error resgistering user: ${error}`);
             return res.status(501).json({message: 'Error creating user', error});
         }
     }
@@ -59,7 +62,7 @@ export class AuthController {
                 }
                 return res.status(200).json({ message: 'Login successful', token });
         } catch (error) {
-            throw new Error(`Error logging in: ${error}`);
+            return res.status(501).json({message: 'Error creating user', error});
         }
     }
 }

@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { WalletModel } from '../models/walletModel';
 
 export class UserController {
+    static generateAccountNumber = () => Math.floor(1000000000 + Math.random() * 9000000000);
     static createWallet = async (req: Request, res: Response) => {
         try {
             const { currency, status} = req.body;

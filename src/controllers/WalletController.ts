@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { TransactionModel, Transaction } from '../models/transactionModel';
 import { WalletModel, Wallet } from '../models/walletModel';
+import db from '../config/database';
 
 export class WalletController {
     private static async validateAccount(account_number: number): Promise<Wallet> {
@@ -29,8 +30,8 @@ export class WalletController {
         const [transactionId] = await TransactionModel.create(transactionData);
         return transactionId;
     }
-
-    static async deposit(req: Request, res: Response): Promise<void> {        
+    static async deposit(req: Request, res: Response): Promise<void> {
+        const trx = await db.transaction();       
         try {
             const { account_number, amount, description, user_id } = req.body;
 
@@ -54,9 +55,11 @@ export class WalletController {
             });
 
             const newBalance = wallet.balance! + amount;
-            await WalletModel.update(account_number, { balance: newBalance });
+            await trx('wallets').where({ account_number }).update({ balance: newBalance });
 
-            await TransactionModel.update(transactionId, { status: 'completed' });
+            await trx('transactions').where({ id: transactionId }).update({ status: 'completed' });
+
+            await trx.commit();
 
             res.status(200).json({
                 message: 'Deposit successful',
@@ -65,13 +68,15 @@ export class WalletController {
             });
 
         } catch (error) {
+            await trx.rollback();
             res.status(400).json({
                 error: error instanceof Error ? error.message : 'Deposit failed'
             });
         }
     }
 
-    static async withdraw(req: Request, res: Response): Promise<void> {        
+    static async withdraw(req: Request, res: Response): Promise<void> {  
+        const trx = await db.transaction();      
         try {
             const { account_number, amount, description, user_id } = req.body;
 
@@ -84,9 +89,9 @@ export class WalletController {
 
             WalletController.validateBalance(wallet.balance!, amount);
 
-            const transactionId = await WalletController.recordTransaction({
+            const [transactionId] = await trx('transactions').insert({
                 sender_id: user_id,
-                receiver_id: user_id,
+                receiver_id: user_id, // For withdrawals, it's the same user
                 transaction_type: 'debit',
                 amount,
                 description: description || 'Wallet withdrawal',
@@ -94,9 +99,11 @@ export class WalletController {
             });
 
             const newBalance = wallet.balance! - amount;
-            await WalletModel.update(account_number, { balance: newBalance });
+            await trx('wallets').where({ account_number }).update({ balance: newBalance });
 
-            await TransactionModel.update(transactionId, { status: 'completed' });
+            await trx('transactions').where({ id: transactionId }).update({ status: 'completed' });
+
+            await trx.commit();
 
             res.status(200).json({
                 message: 'Withdrawal successful',
@@ -104,14 +111,16 @@ export class WalletController {
                 new_balance: newBalance,
             });
 
-        } catch (error) {            
+        } catch (error) { 
+            await trx.rollback();           
             res.status(400).json({
                 error: error instanceof Error ? error.message : 'Withdrawal failed'
             });
         }
     }
 
-    static async transfer(req: Request, res: Response): Promise<void> {        
+    static async transfer(req: Request, res: Response): Promise<void> { 
+        const trx = await db.transaction();       
         try {
             const { sender_account, receiver_account, amount, description, sender_user_id,receiver_user_id } = req.body;
 
@@ -124,12 +133,28 @@ export class WalletController {
                 throw new Error('Cannot transfer to the same account');
             }
 
-            const senderWallet = await WalletController.validateAccount(sender_account);
-            const receiverWallet = await WalletController.validateAccount(receiver_account);
+            const senderWallet = await trx('wallets').where({ account_number: sender_account }).first().forUpdate();
+            const receiverWallet = await trx('wallets').where({ account_number: receiver_account }).first().forUpdate();
+
+            if (!senderWallet) {
+                throw new Error('Sender account not found');
+            }
+
+            if (!receiverWallet) {
+                throw new Error('Receiver account not found');
+            }
+
+            if (senderWallet.status !== 'active') {
+                throw new Error('Sender account is not active');
+            }
+
+            if (receiverWallet.status !== 'active') {
+                throw new Error('Receiver account is not active');
+            }
 
             WalletController.validateBalance(senderWallet.balance!, amount);
 
-            const debitTransactionId = await WalletController.recordTransaction({
+             const [debitTransactionId] = await trx('transactions').insert({
                 sender_id: sender_user_id,
                 receiver_id: receiver_user_id || sender_user_id,
                 transaction_type: 'debit',
@@ -138,7 +163,7 @@ export class WalletController {
                 status: 'pending'
             });
 
-            const creditTransactionId = await WalletController.recordTransaction({
+            const [creditTransactionId] = await trx('transactions').insert({
                 sender_id: sender_user_id,
                 receiver_id: receiver_user_id || sender_user_id,
                 transaction_type: 'credit',
@@ -148,13 +173,14 @@ export class WalletController {
             });
 
             const newSenderBalance = senderWallet.balance! - amount;
-            await WalletModel.update(sender_account, { balance: newSenderBalance });
+            await trx('wallets').where({ account_number: sender_account }).update({ balance: newSenderBalance });
 
             const newReceiverBalance = receiverWallet.balance! + amount;
-            await WalletModel.update(receiver_account, { balance: newReceiverBalance });
+            await trx('wallets').where({ account_number: receiver_account }).update({ balance: newReceiverBalance });
 
-            await TransactionModel.update(debitTransactionId, { status: 'completed' });
-            await TransactionModel.update(creditTransactionId, { status: 'completed' });
+            await trx('transactions').where({ id: [debitTransactionId, creditTransactionId] }).update({ status: 'completed' });
+
+            await trx.commit();
 
             res.status(200).json({
                 message: 'Transfer successful',
@@ -164,7 +190,8 @@ export class WalletController {
                 receiver_new_balance: newReceiverBalance
             });
 
-        } catch (error) {            
+        } catch (error) {   
+            await trx.rollback();         
             res.status(400).json({
                 error: error instanceof Error ? error.message : 'Transfer failed'
             });

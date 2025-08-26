@@ -12,7 +12,7 @@ export interface Wallet {
 }
 
 export class WalletModel {
-    static async create(wallet: Omit<Wallet, 'id' | 'user_id' | 'created_at' | 'updated_at'>): Promise<number[]> {
+    static async create(wallet: Omit<Wallet, 'id' | 'created_at' | 'updated_at'>): Promise<number[]> {
         return db('wallets').insert(wallet);
     }
 

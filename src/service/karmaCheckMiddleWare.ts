@@ -1,5 +1,4 @@
 import dotenv from 'dotenv';
-import { Request, Response, NextFunction } from 'express';
 import axios from 'axios';
 
 dotenv.config();
@@ -34,7 +33,7 @@ const karmaCheckMiddleWare = async (email: string) => {
     const apiKey = process.env.ADJUTOR_API_KEY!;
 
     try {
-        const response = await axios.get<KarmaApiResponse>(`${apiUrl}/verification/karma/:${email}`, {
+        const response = await axios.post<KarmaApiResponse>(`${apiUrl}/verification/karma/:${email}`, {
             headers: {
                 'Authorization': apiKey,
                 'Content-Type': 'application/json'
