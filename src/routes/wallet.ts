@@ -7,7 +7,7 @@ const router = Router();
 
 router.post('/create-wallet', authMiddleWare, UserController.createWallet);
 router.post('/delete-wallet/:id', authMiddleWare, UserController.deleteWallet);
-router.post('/update-wallet-status/:id', authMiddleWare, UserController.updateWalletStatus);
+router.patch('/update-wallet-status/:id', authMiddleWare, UserController.updateWalletStatus);
 router.get('/get-balance/:id', authMiddleWare, TransactionController.getBalance);
 
 export default router

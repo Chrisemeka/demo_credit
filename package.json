@@ -10,6 +10,9 @@
     "migrate:rollback": "knex migrate:rollback",
     "migrate:up": "knex migrate:up",
     "migrate:down": "knex migrate:down",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
     "build": "tsc"
   },
   "keywords": [],
