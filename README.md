@@ -30,31 +30,3 @@ The service provides secure wallet functionality that enables borrowers to recei
 ### Entity Relationship Diagram
 
 ![E-R Digram](./image/demo-credit-mvp_1.png)
-
-```mermaid
-erDiagram
-    USERS {
-        int id PK
-        string email UK
-        string first_name
-        string last_name
-        string phone_number UK
-        string password
-        string auth_token
-        datetime token_expiration
-        datetime created_at
-        datetime updated_at
-    }
-    
-    WALLETS {
-        int id PK
-        int user_id FK
-        int account_number UK
-        decimal balance
-        string currency
-        enum status
-        datetime created_at
-        datetime updated_at
-    }
-    
-    USERS ||--|| WALLETS : owns
