@@ -23,9 +23,9 @@ const config: { [key: string]: Knex.Config } = {
   production: {
     client: "mysql",
     connection: {
-      database: "my_db",
-      user: "username",
-      password: "password"
+      database: process.env.DB_NAME || 'lendsqr_wallet_dev',
+      user: process.env.DB_USER || 'root',
+      password: ""
     },
     migrations: {
       directory: './src/knexMigrations',
