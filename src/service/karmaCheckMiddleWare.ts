@@ -45,11 +45,11 @@ const karmaCheckMiddleWare = async (email: string) => {
 
       if (response.data.status !== 'success') {
           console.error('Karma API call failed:', response.data.message);
-          return true;
+          return `Karma API call failed:` + response.data.message;
       }
 
       if (!response.data.data) {
-          return false;
+          return 'Karma data not found';
       }
 
       const amountInContention = parseFloat(response.data.data.amount_in_contention || '0');
