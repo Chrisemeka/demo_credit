@@ -61,16 +61,7 @@ export class TransactionController {
         }
     }
 
-/*************  ✨ Windsurf Command ⭐  *************/
-    /**
-     * Withdraw an amount from the user's wallet
-     * @param req - The request object
-     * @param res - The response object
-     * @throws {Error} - If the user doesn't have enough balance
-     * @throws {Error} - If the user is not authenticated
-     */
 
-/*******  4073f051-f0a8-47ae-9a3b-b8833a152cc1  *******/
     static async withdraw(req: AuthRequest, res: Response) {  
         const trx = await db.transaction();      
         try {

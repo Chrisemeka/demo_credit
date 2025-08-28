@@ -42,9 +42,7 @@ const karmaCheckMiddleWare = async (email: string) => {
                 }
             }
         );
-
         console.log('Karma API Response:', JSON.stringify(response.data, null, 2));
-
         if (response.data.status !== 'success') {
             console.error('Karma API call failed:', response.data.message);
             return {
@@ -54,7 +52,6 @@ const karmaCheckMiddleWare = async (email: string) => {
                 rawResponse: response.data
             };
         }
-
         if (!response.data.data) {
             return {
                 isBlacklisted: false,
