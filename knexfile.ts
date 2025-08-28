@@ -1,6 +1,6 @@
 import type { Knex } from "knex";
 import dotenv from 'dotenv';
-
+import path from 'path';
 dotenv.config();
 
 const config: { [key: string]: Knex.Config } = {
@@ -33,7 +33,7 @@ const config: { [key: string]: Knex.Config } = {
       }
     },
     migrations: {
-      directory: './src/knexMigrations',
+      directory: path.join(__dirname, 'knexMigrations'),
       extension: 'js',
       tableName: 'knex_migrations'
     },
