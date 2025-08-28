@@ -37,16 +37,19 @@ export class TransactionController {
             if (!user_id) {
                 return res.status(401).json({ message: 'Authentication required' });
             }
-            const wallet = await TransactionController.validateAccount(account_number);
-            if (amount <= 0) {
-                throw new Error('Amount must be greater than zero');
+           const depositAmount = parseFloat(String(amount));
+            if (isNaN(depositAmount) || depositAmount <= 0) {
+                throw new Error('Amount must be a valid number greater than zero');
             }
-            const newBalance = wallet.balance! + amount;
-            await trx('wallets').where({ account_number }).update({ balance: newBalance });
+            const wallet = await TransactionController.validateAccount(account_number);
+            const currentBalance = Number(wallet.balance) || 0;
+            const newBalance = currentBalance + depositAmount;
+            const roundedBalance = Math.round(newBalance * 100) / 100;
+            await trx('wallets').where({ account_number }).update({ balance: roundedBalance });
             await trx.commit();
             res.status(200).json({
                 message: 'Deposit successful',
-                new_balance: newBalance,
+                new_balance: roundedBalance.toFixed(2),
             });
 
         } catch (error) {
@@ -58,6 +61,16 @@ export class TransactionController {
         }
     }
 
+/*************  ✨ Windsurf Command ⭐  *************/
+    /**
+     * Withdraw an amount from the user's wallet
+     * @param req - The request object
+     * @param res - The response object
+     * @throws {Error} - If the user doesn't have enough balance
+     * @throws {Error} - If the user is not authenticated
+     */
+
+/*******  4073f051-f0a8-47ae-9a3b-b8833a152cc1  *******/
     static async withdraw(req: AuthRequest, res: Response) {  
         const trx = await db.transaction();      
         try {
