@@ -10,7 +10,7 @@
     "migrate:rollback": "knex migrate:rollback --knexfile dist/src/knexfile.js",
     "migrate:up": "knex migrate:up --knexfile dist/src/knexfile.js",
     "migrate:down": "knex migrate:down --knexfile dist/src/knexfile.js",
-    "build": "tsc && cp -r src/knexMigrations dist/"
+    "build": "tsc"
   },
   "keywords": [],
   "author": "",
