@@ -22,7 +22,8 @@ export class AuthController {
                 if (isBlacklisted) {
                     return res.status(403).json({
                     error: 'User verification failed. Account cannot be created.',
-                    code: 'KARMA_BLACKLISTED'
+                    code: 'KARMA_BLACKLISTED',
+                    response: isBlacklisted
                     });
                 }
                 const hashedPassword = await bcrypt.hash(password, 10);
