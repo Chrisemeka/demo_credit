@@ -58,7 +58,7 @@ const karmaCheckMiddleWare = async (email: string) => {
       
     } catch (error) {
         console.error('Error checking karma:', error);
-        return true; 
+        return error instanceof Error ? error.message : 'Error checking karma'; 
     }
 };
 
