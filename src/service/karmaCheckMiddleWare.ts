@@ -34,7 +34,7 @@ const karmaCheckMiddleWare = async (email: string) => {
 
     try {
         const response = await axios.get<KarmaApiResponse>(
-            `${apiUrl}/verification/karma/identity?identity=${email}`,
+            `${apiUrl}/verification/karma/${email}`,
             {
                 headers: {
                     'Authorization': `Bearer ${apiKey}`,

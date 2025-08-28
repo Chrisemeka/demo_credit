@@ -18,12 +18,12 @@ export class AuthController {
                 if (existingUser) {
                     return res.status(400).json({ message: 'User already exists' });
                 }
-                const isBlacklisted = await karmaCheckMiddleWare(email);
-                if (isBlacklisted) {
+                const isBlacklistedResult = await karmaCheckMiddleWare(email);
+                if (isBlacklistedResult.isBlacklisted) {
                     return res.status(403).json({
-                    error: 'User verification failed. Account cannot be created.',
-                    code: 'KARMA_BLACKLISTED',
-                    response: isBlacklisted
+                        error: 'User verification failed. Account cannot be created.',
+                        code: 'KARMA_BLACKLISTED',
+                        response: isBlacklistedResult
                     });
                 }
                 const hashedPassword = await bcrypt.hash(password, 10);
