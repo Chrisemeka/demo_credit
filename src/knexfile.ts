@@ -14,7 +14,7 @@ const config: { [key: string]: Knex.Config } = {
       database: process.env.DB_NAME || 'lendsqr_wallet_dev'
     },
     migrations: {
-      directory: './src/knexMigrations',
+      directory: './knexMigrations', 
       extension: 'ts',
       tableName: 'knex_migrations'
     },
@@ -33,12 +33,11 @@ const config: { [key: string]: Knex.Config } = {
       }
     },
     migrations: {
-      directory: path.join(__dirname, 'knexMigrations'),
+      directory: './knexMigrations', 
       extension: 'js',
       tableName: 'knex_migrations'
     },
   }
-
 };
 
 export default config;

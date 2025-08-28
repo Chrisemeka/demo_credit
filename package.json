@@ -7,9 +7,9 @@
     "dev": "nodemon src/index.ts",
     "migrate:make": "knex migrate:make --knexfile src/knexfile.ts",
     "migrate:latest": "knex migrate:latest --knexfile dist/knexfile.js",
-    "migrate:rollback": "knex migrate:rollback --knexfile dist/src/knexfile.js",
-    "migrate:up": "knex migrate:up --knexfile dist/src/knexfile.js",
-    "migrate:down": "knex migrate:down --knexfile dist/src/knexfile.js",
+    "migrate:rollback": "knex migrate:rollback --knexfile dist/knexfile.js",
+    "migrate:up": "knex migrate:up --knexfile dist/knexfile.js",
+    "migrate:down": "knex migrate:down --knexfile dist/knexfile.js",
     "build": "tsc"
   },
   "keywords": [],
