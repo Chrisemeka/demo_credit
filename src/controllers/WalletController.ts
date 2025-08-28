@@ -6,7 +6,7 @@ interface AuthRequest extends Request {
     user?: { user_id: number};
 }
 
-export class UserController {
+export class WalletController {
      static generateAccountNumber = (): number => {
         const prefix = '001';
         const randomSuffix = Math.floor(1000000 + Math.random() * 9000000);

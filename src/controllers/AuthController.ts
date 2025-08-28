@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { UserModel } from '../models/userModel';
-import { UserController } from './WalletController'; 
+import { WalletController } from './WalletController'; 
 import { WalletModel } from '../models/walletModel'; 
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
@@ -33,7 +33,7 @@ export class AuthController {
                     phone_number,
                     password: hashedPassword,
                 });
-                await WalletModel.create({ user_id, account_number: UserController.generateAccountNumber(), currency: 'NGN', status: 'active' });
+                await WalletModel.create({ user_id, account_number: WalletController.generateAccountNumber(), currency: 'NGN', status: 'active' });
 
                 return res.status(201).json({message: 'User created successfully', user_id});
         } catch (error) {
